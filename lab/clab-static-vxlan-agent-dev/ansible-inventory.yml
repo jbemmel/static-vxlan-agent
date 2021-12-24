@@ -7,6 +7,6 @@ all:
     srl:
       hosts:
         clab-static-vxlan-agent-dev-srl1:
-          ansible_host: 172.20.20.10
-        clab-static-vxlan-agent-dev-srl2:
           ansible_host: 172.20.20.12
+        clab-static-vxlan-agent-dev-srl2:
+          ansible_host: 172.20.20.10

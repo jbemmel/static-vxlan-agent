@@ -12,4 +12,5 @@ tests/report.html
 tests/test.pyc
 tests/venv/
 todo
-
+lab/clab-static-vxlan-agent-dev/srl1/config/tls
+lab/clab-static-vxlan-agent-dev/srl2/config/tls
