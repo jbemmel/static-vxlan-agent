@@ -1,0 +1,13 @@
+build/
+config.json
+logs/
+static-vxlan-agent
+tests/__pycache__/
+tests/debug.txt
+tests/log.html
+tests/output.xml
+tests/report.html
+tests/test.pyc
+tests/venv/
+todo
+

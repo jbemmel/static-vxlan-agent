@@ -1,0 +1,154 @@
+module static-vxlan-agent {
+    yang-version 1.1;
+    namespace "urn:srl_nokia/static-vxlan-agent";
+    prefix "srl_nokia-static-vxlan-agent";
+
+
+    import srl_nokia-common {
+        prefix srl_nokia-comm;
+    }   
+
+    import srl_nokia-extensions {
+        prefix srl_nokia-ext;
+    }   
+
+    import srl_nokia-network-instance {
+        prefix srl_nokia-netinst;
+    }   
+    import srl_nokia-tunnel-interfaces {
+        prefix srl_nokia-tun;
+    }
+
+    import srl_nokia-features { 
+        prefix srl-feat; 
+    }
+
+    import srl_nokia-bgp-evpn {
+        prefix srl_nokia-bgp-evpn;
+    }
+
+    description  "static-vxlan-agent YANG module";
+
+    // The BGP peering general configuration for the Static VXLAN agent
+    augment "/srl_nokia-netinst:network-instance/srl_nokia-netinst:protocols" {
+        container static-vxlan-agent {
+            //if-feature "srl-feat:vxlan and srl-feat:evpn";
+
+            presence "Configure BGP static VXLAN agent";
+            must "../../srl_nokia-netinst:type = 'srl_nokia-netinst:default'" {
+              error-message "VXLAN agent must be configured in the default network instance";
+            }
+
+            leaf admin-state {
+                type srl_nokia-comm:admin-state;
+                default "enable";
+
+                description "Administratively enable or disable static VXLAN agent";
+            }
+
+            leaf source-address {
+              mandatory true;
+              type srl_nokia-comm:ip-address;
+              description "Local loopback IP to connect from";
+            }
+
+            leaf peer-address {
+              type srl_nokia-comm:ip-address;
+              default "127.0.0.1";
+              description "Remote IP to connect to, default localhost";
+            }
+
+            leaf local-as {
+              type uint32 {
+                range "1..4294967295";
+              }
+              default 65535;
+              description "Local AS to use in BGP EVPN peering";
+            }
+
+            leaf peer-as {
+              type uint32 {
+                range "1..4294967295";
+              }
+              default 65535;
+              description "Peer AS to use in BGP EVPN peering";
+            }
+
+            leaf local-preference {
+              type uint32;
+              default 100;
+              description "Local preference to use for advertising EVPN MAC routes, default 100";
+            }
+
+            leaf oper-state {
+              config false;
+              srl_nokia-ext:show-importance "high";
+              type srl_nokia-comm:oper-state;
+              description "Operational state of the static VXLAN agent";
+            }
+
+        }
+    }
+
+    augment "/srl_nokia-netinst:network-instance/srl_nokia-netinst:protocols/srl_nokia-netinst:bgp-evpn/srl_nokia-bgp-evpn:bgp-instance" {
+        container static-vxlan-agent {
+          if-feature "srl-feat:vxlan and srl-feat:evpn";
+          presence "VXLAN agent configuration";
+
+          description "Enable learning and advertisement of EVPN routes for this instance";
+
+          must "../../../../srl_nokia-netinst:type = 'srl_nokia-netinst:mac-vrf'" {
+            error-message "VXLAN agent can only be enabled for L2 mac-vrf";
+          }
+
+          leaf admin-state {
+              type srl_nokia-comm:admin-state;
+              default "enable";
+
+              description "Administratively enable or disable VXLAN agent functionality for this mac-vrf";
+          }
+
+          leaf evi {
+             description "Copy of the EVPN instance(evi) for this mac-vrf, used for auto-RD/RT";
+
+             type uint32 {
+               range "1..65535";
+             }
+             mandatory true;
+             must ". = ../../srl_nokia-bgp-evpn:evi" {
+               error-message "EVI must match bgp-evpn config";
+             }
+          }
+
+          leaf vni {
+            description "Copy of the VNI for this service";
+            type uint32 {
+              range "1..16777215";
+            }
+            mandatory true;
+          }
+
+          list static-vtep {
+            description "List of remote VTEPs for static non-EVPN peers (IPv4)";
+            key vtep-ip;
+            leaf vtep-ip {
+              type srl_nokia-comm:ipv4-address;
+            }
+            leaf-list static-macs {
+              description "Optional list of endpoint MAC addresses hosted by this VTEP";
+              // type srl_nokia-comm:mac-address;
+              // Use custom pattern to exclude broadcast/multicast MACs
+              type string {
+                pattern '[0-9a-fA-F][02468aceACE](:[0-9a-fA-F]{2}){5}';
+
+                // Exclude VRRP MACs
+                pattern '00:00:5[eE]:00:01:.*' {
+                  modifier invert-match;
+                  error-message "VRRP MACs should not be defined statically";
+                }
+              }
+            }
+          }
+        }
+    }
+}

@@ -1,0 +1,239 @@
+module srl_nokia-features {
+  yang-version 1.1;
+  namespace "urn:srl_nokia/features";
+  prefix srl_nokia-feat;
+
+  description
+    "YANG module detailing SRLinux features";
+
+  // features - alphabetical
+
+  revision 2021-06-30 {
+    description
+      "SRLinux 21.6.1";
+  }
+  revision 2021-03-31 {
+    description
+      "SRLinux 21.3.1";
+  }
+  revision 2020-06-30 {
+    description
+      "SRLinux 20.6.1";
+  }
+
+  feature anycast-gw {
+    description
+      "Support for bridged feature and anycast-gw configuration on interface";
+  }
+
+  feature bgp-auto-discovery-using-lldp {
+    description
+      "Using LLDP to initiate outbound dynamic BGP sessions";
+  }
+
+  feature bridged {
+    description
+      "Support for MAC-VRF services";
+  }
+
+  feature chassis {
+    description
+      "The platform is in a chassis configuration";
+  }
+
+  feature disabled {
+    description
+      "Feature flag that is always disabled";
+  }
+
+  feature dhcp-server {
+    description
+      "Support for DHCP server";
+  }
+
+  feature evpn {
+    description
+      "Support for EVPN";
+  }
+
+  feature evpn-advertise-arp-nd-only-with-mac-table-entry {
+    description
+      "Support for EVPN arp/nd mac-ip route advertisement only with local mac in mac-table";
+  }
+
+  feature evpn-mh-pref-alg {
+    description
+      "Support for EVPN Multi-Homing with preference based DF election";
+  }
+
+  feature evpn-mh-single-active {
+    description
+      "Support for EVPN Single Active Multi-Homing";
+  }
+
+  feature fixed {
+    description
+      "The platform is in a fixed configuration, i.e. non-chassis platforms";
+  }
+
+  feature gribi {
+    description
+      "Support for gRPC Routing Information Base Interface";
+  }
+
+  feature host-network-instance {
+    description
+      "Support for host network-instance type";
+  }
+
+  feature interface-hold-time {
+    description
+      "Support for interface hold-time";
+  }
+
+  feature ipv6-flow-label-hash-key {
+    description
+        "Include the IPv6 flow label in the hash calculation for IPv6 packet";
+  }
+
+  feature isis-maint-mode {
+    description
+      "Support for isis maintainance mode";
+  }
+
+  feature isis-mt {
+    description
+      "Support for isis multi-topology";
+  }
+
+  feature lacp-fallback {
+    description
+      "Support for link aggregation control protocol fallback";
+  }
+
+  feature label-management {
+    description
+      "Support for mpls label management";
+  }
+
+  feature lag {
+    description
+      "Support for link aggregation groups";
+  }
+
+  feature ldp {
+    description
+      "Support for label distribution protocol";
+  }
+
+  feature mirroring {
+    description
+      "Support for mirroring (SPAN/ERSPAN)";
+  }
+
+  feature mpls {
+    description
+      "Support for MPLS";
+  }
+
+  feature mpls-qos {
+    description
+      "Support for MPLS QoS";
+  }
+
+  feature port-breakout {
+    description
+      "Support for ethernet port breakout (port connector)";
+  }
+
+  feature ra-guard {
+    description
+      "Support for ra guard";
+  }
+
+  feature reload-delay {
+    description
+      "Support for interface reload-delay timers";
+  }
+
+  feature routing-policy-fallthrough-actions {
+    description
+      "Support for next-entry and next-policy routing policy actions";
+  }
+
+  feature segment-routing {
+    description
+      "Support for segment routing using the MPLS dataplane";
+  }
+
+  feature service-authorization {
+    description
+      "Support for authorizing local users to a set of services";
+  }
+
+  feature storm-control {
+    description
+      "Support for storm control";
+  }
+
+  feature traffic-engineering {
+    description
+      "Support for TE DB, BGP-LS and TE advertisement by IGPs";
+  }
+
+  feature tx-flow-control {
+    description
+      "Support for transmitting Ethernet flow control (PAUSE) frames";
+  }
+
+  feature vrrp {
+    description
+      "Support for VRRP";
+  }
+
+  feature vxlan {
+    description
+      "Support for VXLAN";
+  }
+
+  feature vxlan-destination-groups {
+    description
+      "Support for VXLAN destination groups";
+  }
+
+  feature warm-reboot {
+    description
+      "Support for warm reboot";
+  }
+
+  // chipsets - alphabetical
+
+  feature jericho2;
+
+  feature tomahawk3;
+
+  feature trident3;
+
+  // platforms - alphabetical
+
+  feature platform-7220-d1; // 7220 IXR-D1
+
+  feature platform-7220-d2; // 7220 IXR-D2
+
+  feature platform-7220-d3; // 7220 IXR-D3
+
+  feature platform-7220-h2; // 7220 IXR-H2
+
+  feature platform-7220-h3; // 7220 IXT-H3
+
+  feature platform-7250-ixr; // 7250 IXR-6/10
+
+  feature platform-7250-j2;  // J2 pizza
+
+  feature platform-crimson;  // crimson pizza
+
+  // switch architecture role - alphabetical
+
+  feature spine;
+
+}

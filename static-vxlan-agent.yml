@@ -1,0 +1,11 @@
+# static-vxlan-agent agent configuration file
+# for a complete list of parameters check https://learn.srlinux.dev/ndk/guide/agent/#configuration-file
+static-vxlan-agent:
+  path: /opt/static-vxlan-agent/bin
+  launch-command: /opt/static-vxlan-agent/bin/static-vxlan-agent.sh
+  search-command: /bin/sh /opt/static-vxlan-agent/bin/static-vxlan-agent
+  wait-for-config: Yes
+  yang-modules:
+    names: ["static-vxlan-agent"]
+    source-directories:
+      - "/opt/static-vxlan-agent/yang"
