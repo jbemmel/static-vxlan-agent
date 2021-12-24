@@ -1,38 +1,37 @@
 package main
 
 import (
-	"context"
-	"fmt"
-    "os"
-    "syscall"
 	"bufio"
-	"os/signal"
-	"sync"
+	"context"
+	"encoding/json"
+	"fmt"
 	"net"
+	"os"
+	"os/signal"
 	"strconv"
+	"sync"
+	"syscall"
+
 	api "github.com/osrg/gobgp/v3/api"
-	apb "google.golang.org/protobuf/types/known/anypb"
 	"github.com/osrg/gobgp/v3/pkg/log"
 	"github.com/osrg/gobgp/v3/pkg/server"
 	"github.com/rs/zerolog"
-    "encoding/json"
+	apb "google.golang.org/protobuf/types/known/anypb"
 )
 
 type BGPSpeaker struct {
-	s *server.BgpServer
-	LocalAS uint32
-	PeerAS uint32
-	RouterId string
+	s         *server.BgpServer
+	LocalAS   uint32
+	PeerAS    uint32
+	RouterId  string
 	Neighbour string
-	logger *zerolog.Logger
+	logger    *zerolog.Logger
 }
 
-
-
 func (b *BGPSpeaker) Start() {
-    if (b.s != nil) {
-        b.Stop()
-    }
+	if b.s != nil {
+		b.Stop()
+	}
 
 	b.s = server.NewBgpServer(server.LoggerOption(&appLogger{logger: b.logger}))
 	go b.s.Serve()
@@ -40,24 +39,24 @@ func (b *BGPSpeaker) Start() {
 	// global configuration
 	if err := b.s.StartBgp(context.Background(), &api.StartBgpRequest{
 		Global: &api.Global{
-			Asn:        b.LocalAS,
-			RouterId:   b.RouterId,
-			ListenPort: -1, 
+			Asn:             b.LocalAS,
+			RouterId:        b.RouterId,
+			ListenPort:      -1,
 			ListenAddresses: []string{b.RouterId},
 		},
 	}); err != nil {
-		b.logger.Info().Msg(fmt.Sprintf("Can't start BGP server: %v",err))
+		b.logger.Info().Msg(fmt.Sprintf("Can't start BGP server: %v", err))
 	}
 
 	// monitor the change of the peer state
-	if err := b.s.WatchEvent(context.Background(), &api.WatchEventRequest{Peer: &api.WatchEventRequest_Peer{},}, func(r *api.WatchEventResponse) {
+	if err := b.s.WatchEvent(context.Background(), &api.WatchEventRequest{Peer: &api.WatchEventRequest_Peer{}}, func(r *api.WatchEventResponse) {
 		fmt.Printf("EVENT %v\n", r.GetPeer())
 
 		if p := r.GetPeer(); p != nil && p.Type == api.WatchEventResponse_PeerEvent_STATE {
 			b.logger.Info().Msg("State Change")
 		}
 	}); err != nil {
-		b.logger.Info().Msg(fmt.Sprintf("Can't watch event: %v",err))
+		b.logger.Info().Msg(fmt.Sprintf("Can't watch event: %v", err))
 	}
 
 	afisafi := api.AfiSafi{
@@ -81,48 +80,48 @@ func (b *BGPSpeaker) Start() {
 			PassiveMode: false,
 		},
 		Timers: &api.Timers{
-			Config: &api.TimersConfig {
+			Config: &api.TimersConfig{
 				ConnectRetry: 1,
 			},
 		},
-		AfiSafis: []*api.AfiSafi{&afisafi,},
+		AfiSafis: []*api.AfiSafi{&afisafi},
 	}
 
 	b.logger.Printf("Adding Neighbour %s", b.Neighbour)
 	if err := b.s.AddPeer(context.Background(), &api.AddPeerRequest{
 		Peer: n,
 	}); err != nil {
-		b.logger.Info().Msg(fmt.Sprintf("Can't add neighbour: %v",err))
+		b.logger.Info().Msg(fmt.Sprintf("Can't add neighbour: %v", err))
 	}
 }
 
-func (b *BGPSpeaker)ProcessVRF(vrfConfig *VniConfig) {
+func (b *BGPSpeaker) ProcessVRF(vrfConfig *VniConfig) {
 	evi, _ := strconv.ParseUint(vrfConfig.Evi, 10, 32)
 	vni, _ := strconv.ParseUint(vrfConfig.Vni, 10, 32)
-	
+
 	for _, vtep := range vrfConfig.Vteps {
 		b.AddMulticastRoute(vtep.Address, uint32(vni), uint32(evi))
 	}
 	//TODO: For each vtep, Send RT2 messages
 }
 
-func (b *BGPSpeaker)GetRib() []*api.Path{
+func (b *BGPSpeaker) GetRib() []*api.Path {
 	var paths []*api.Path
 
 	b.s.ListPath(context.Background(), &api.ListPathRequest{
-		Family: &api.Family{Afi: api.Family_AFI_L2VPN, Safi: api.Family_SAFI_EVPN},
+		Family:    &api.Family{Afi: api.Family_AFI_L2VPN, Safi: api.Family_SAFI_EVPN},
 		TableType: api.TableType_GLOBAL,
 	}, func(p *api.Destination) {
 		for _, path := range p.Paths {
 			paths = append(paths, path)
 		}
-	})	
+	})
 
 	//b.logger.Info().Msgf("List of Paths:  %v",paths)
 	return paths
 }
 
-func (b *BGPSpeaker)DeleteOldPaths(vrfConfig *VniConfig) {
+func (b *BGPSpeaker) DeleteOldPaths(vrfConfig *VniConfig) {
 	evi, _ := strconv.ParseUint(vrfConfig.Evi, 10, 32)
 
 	paths := b.GetRib()
@@ -140,24 +139,24 @@ func (b *BGPSpeaker)DeleteOldPaths(vrfConfig *VniConfig) {
 			}
 		}
 
-		if (!found ||rd.Assigned != uint32(evi)) {
+		if !found || rd.Assigned != uint32(evi) {
 			b.DeleteMulticastRoute(path, vrfConfig.Evi)
 		}
 	}
 }
 
-func (b *BGPSpeaker)DeleteMulticastRoute(path *api.Path, evi string) {
-	b.logger.Info().Msgf("Deleting Path:  %v",path)
+func (b *BGPSpeaker) DeleteMulticastRoute(path *api.Path, evi string) {
+	b.logger.Info().Msgf("Deleting Path:  %v", path)
 	err := b.s.DeletePath(context.Background(), &api.DeletePathRequest{
 		TableType: api.TableType_GLOBAL,
-		Path: path,
+		Path:      path,
 	})
 	if err != nil {
-		b.logger.Info().Msg(fmt.Sprintf("Can't delete path: %v",err))
+		b.logger.Info().Msg(fmt.Sprintf("Can't delete path: %v", err))
 	}
 }
 
-func (b *BGPSpeaker)ProcessRoutes(vniConfigs map[string]VniConfig) {
+func (b *BGPSpeaker) ProcessRoutes(vniConfigs map[string]VniConfig) {
 	b.logger.Info().Msgf("BGP Speaker Processing VRF Config: %v", vniConfigs)
 
 	for _, vrfConfig := range vniConfigs {
@@ -167,26 +166,27 @@ func (b *BGPSpeaker)ProcessRoutes(vniConfigs map[string]VniConfig) {
 	}
 }
 
-func (b *BGPSpeaker)AddMulticastRoute(vtep string, vni uint32, evi uint32) {
+func (b *BGPSpeaker) AddMulticastRoute(vtep string, vni uint32, evi uint32) {
 	rd, _ := apb.New(&api.RouteDistinguisherIPAddress{
 		Admin:    vtep,
 		Assigned: evi,
 	})
 
 	nlri, _ := apb.New(&api.EVPNInclusiveMulticastEthernetTagRoute{
-		Rd:              rd,
-		IpAddress:       b.RouterId,
-		EthernetTag:     uint32(0),
+		Rd:          rd,
+		IpAddress:   b.RouterId,
+		EthernetTag: uint32(0),
 	})
 
-    ext1, _ := apb.New(&api.TwoOctetAsSpecificExtended{
+	ext1, _ := apb.New(&api.TwoOctetAsSpecificExtended{
+		IsTransitive: true,
 		SubType:      2, // EC_SUBTYPE_ROUTE_TARGET
 		Asn:          uint32(b.LocalAS),
 		LocalAdmin:   uint32(evi),
 	})
 
 	ext2, _ := apb.New(&api.EncapExtended{
-		TunnelType:   8, // TUNNEL_TYPE_VXLAN
+		TunnelType: 8, // TUNNEL_TYPE_VXLAN
 	})
 
 	a1, _ := apb.New(&api.OriginAttribute{
@@ -199,14 +199,14 @@ func (b *BGPSpeaker)AddMulticastRoute(vtep string, vni uint32, evi uint32) {
 
 	a3, _ := apb.New(&api.PmsiTunnelAttribute{
 		Flags: 0,
-		Type: 6, // PMSI_TUNNEL_TYPE_INGRESS_REPL,
+		Type:  6, // PMSI_TUNNEL_TYPE_INGRESS_REPL,
 		Label: vni,
-		Id: net.ParseIP(vtep).To4(),
+		Id:    net.ParseIP(vtep).To4(),
 	})
 
-    a4, _ := apb.New(&api.ExtendedCommunitiesAttribute{
-        Communities: []*apb.Any{ext1, ext2},
-    })
+	a4, _ := apb.New(&api.ExtendedCommunitiesAttribute{
+		Communities: []*apb.Any{ext1, ext2},
+	})
 
 	_, err := b.s.AddPath(context.Background(), &api.AddPathRequest{
 		Path: &api.Path{
@@ -217,20 +217,19 @@ func (b *BGPSpeaker)AddMulticastRoute(vtep string, vni uint32, evi uint32) {
 	})
 
 	if err != nil {
-		b.logger.Info().Msg(fmt.Sprintf("Can't add path: %v",err))
+		b.logger.Info().Msg(fmt.Sprintf("Can't add path: %v", err))
 	}
 }
 
-
 func (b *BGPSpeaker) Stop() {
-    if b.s == nil {
-        return
-    }
-    b.s.Stop()
-    b.s = nil
+	if b.s == nil {
+		return
+	}
+	b.s.Stop()
+	b.s = nil
 }
 
-func NewBGPSpeaker(logger *zerolog.Logger) *BGPSpeaker{
+func NewBGPSpeaker(logger *zerolog.Logger) *BGPSpeaker {
 	var speaker BGPSpeaker
 
 	speaker.logger = logger
@@ -238,7 +237,7 @@ func NewBGPSpeaker(logger *zerolog.Logger) *BGPSpeaker{
 	return &speaker
 }
 
-func (b *BGPSpeaker)Run(ctx context.Context) {
+func (b *BGPSpeaker) Run(ctx context.Context) {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
@@ -248,7 +247,7 @@ func (b *BGPSpeaker)Run(ctx context.Context) {
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 
-	go func () {
+	go func() {
 		scanner := bufio.NewScanner(os.Stdin)
 
 		for {
@@ -266,9 +265,9 @@ func (b *BGPSpeaker)Run(ctx context.Context) {
 					json.Unmarshal([]byte(msg["data"]), &bgpc)
 					b.logger.Info().Msg("BGP Speaker Processing BGP Config")
 
-                    b.Stop()
+					b.Stop()
 
-					if bgpc.AdminState == "ADMIN_STATE_enable"  {
+					if bgpc.AdminState == "ADMIN_STATE_enable" {
 						b.logger.Info().Msg("Starting BGP Speaker")
 						b.LocalAS = getUint32FromJson(bgpc.LocalAS.Value)
 						b.PeerAS = getUint32FromJson(bgpc.PeerAS.Value)
@@ -294,7 +293,7 @@ func (b *BGPSpeaker)Run(ctx context.Context) {
 		wg.Done()
 	}()
 
-	go func () {
+	go func() {
 		<-sigs
 		wg.Done()
 	}()
@@ -303,7 +302,6 @@ func (b *BGPSpeaker)Run(ctx context.Context) {
 	b.logger.Debug().Msg("BGP Speaker Exiting")
 
 }
-
 
 // implement github.com/osrg/gobgp/v3/pkg/log/Logger interface
 type appLogger struct {
@@ -341,7 +339,6 @@ func (l *appLogger) GetLevel() log.LogLevel {
 	return log.LogLevel(l.logger.GetLevel())
 }
 
-
 /*func (b *BGPSpeaker)CreateVRF(vtep string, vrfConfig *VniConfig) {
 	evi, _ := strconv.ParseUint(vrfConfig.Evi, 10, 32)
 
@@ -370,4 +367,3 @@ func (l *appLogger) GetLevel() log.LogLevel {
 		},
 	})
 }*/
-

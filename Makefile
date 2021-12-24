@@ -54,7 +54,13 @@ destroy-lab:
 	sudo rm -f .*.clab.* \
 	sudo rm -rf ../logs/*
 
-deploy-lab: build-automated-test
+keys: 
+	test -f ./id_rsa || ssh-keygen -t rsa -f ./id_rsa -q -N ""
+	sudo chmod 700 id_rsa
+	sudo chmod 740 id_rsa.pub
+	sudo chown 166898390:992  id_rsa.pub
+
+deploy-lab: build-automated-test keys
 	mkdir -p logs/srl1 logs/srl2
 	cd lab; \
 	sudo clab dep -t $(LABFILE)

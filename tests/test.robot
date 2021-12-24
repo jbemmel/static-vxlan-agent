@@ -84,9 +84,9 @@ Test Create VRF
     add_vtep        210     1.1.1.104
     delete_vtep     210     1.1.1.101
     delete_vtep     210     1.1.1.102
+
     @{paths}=       get_evpn_paths
     Length Should Be     ${paths}    3
-
     Should Contain    ${paths}    1.1.1.100:210
     Should Contain    ${paths}    1.1.1.103:210
     Should Contain    ${paths}    1.1.1.104:210
